@@ -3,6 +3,14 @@ from django.db import models
 
 class XmlField(models.TextField):
 
+    description = "An XML type field"
+
+    def __init(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def db_type(self, connection):
+        return 'xml'
+
     def get_internal_type(self):
         return 'XML'
 
