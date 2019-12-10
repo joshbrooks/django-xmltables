@@ -1,5 +1,9 @@
 
 from django.db import models
+from django.db import connection
+from django.utils.text import slugify
+import logging
+logger = logging.getLogger(__name__)
 
 class XmlField(models.TextField):
 
@@ -26,24 +30,29 @@ class XmlBaseModel(models.Model):
 class XmlColumn(models.Model):
     col_name = models.CharField(max_length=256)
     col_type = models.CharField(max_length=256, default="text")
+    col_xsd_type = models.CharField(max_length=256, default="xsd:string")
     column_expression = models.CharField(max_length=256, null=True, blank=True)
     default_expression = models.CharField(max_length=256, null=True, blank=True)
     not_null = models.BooleanField(default=False)
     for_ordinality = models.BooleanField(default=False)
 
     @property
-    def sql(self):
-        entries = [
+    def sql_parts(self):
+        return [
             self.col_name,
-            self.col_type if not self.for_ordinality else False,
+            self.col_type.upper() if not self.for_ordinality else False,
             f"PATH '{self.column_expression}'" if self.column_expression else False,
             f"DEFAULT {self.default_expression}" if self.default_expression else False,
             "NOT NULL" if self.not_null else False,
             "FOR ORDINALITY" if self.for_ordinality else False,
         ]
-        return " ".join([e for e in entries if e])
 
+    @property
+    def sql(self):
+        return " ".join([e for e in self.sql_parts if e])
 
+    def __str__(self):
+        return self.sql
 
 class XmlNamespace(models.Model):
     uri = models.CharField(max_length=256)
@@ -62,19 +71,40 @@ class XmlTable(models.Model):
 
     @property
     def __namespaces(self):
-        if self.namespaces:
+        if self.namespaces.count():
             return "XMLNAMESPACES({}),".format(
-                ", ".join(ns.sql for ns in self.namespaces)
+                ", ".join(ns.sql for ns in self.namespaces.all())
             )
         return ""
 
     @property
     def __columns(self):
         if self.columns:
-            return "{}".format(", ".join(ns.sql for ns in self.columns))
+            return "{}".format("    ,\n".join(ns.sql for ns in self.columns.all()))
         return ""
 
     @property
     def sql(self):
-        return f"XMLTABLE({self.__namespaces}'{self.document_expression}' PASSING {self.row_expression} COLUMNS {self.__columns})"
+        return f"""
+XMLTABLE({self.__namespaces}'{self.row_expression}' 
+    PASSING {self.document_expression} 
+    COLUMNS {self.__columns})"""
 
+    def execute(self):
+        with connection.cursor() as c:
+            c.execute(self.sql)
+            return c.fetchall()
+
+    def materialize(self):
+        from django.db import connection
+        name = slugify(self.row_expression.replace('-', '_'))
+        with connection.cursor() as c:
+            c.execute(f'DROP MATERIALIZED VIEW IF EXISTS "{name}" CASCADE')
+            try:
+                c.execute(f'CREATE MATERIALIZED VIEW "{name}" AS {self.sql}')
+            except Exception as e:
+                logger.error(f'''Unable to continue; SQL was {self.sql}''', exc_info=1) 
+                raise
+    
+    def __str__(self):
+        return self.row_expression
