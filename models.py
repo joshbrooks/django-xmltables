@@ -96,15 +96,18 @@ XMLTABLE({self.__namespaces}'{self.row_expression}'
             return c.fetchall()
 
     def materialize(self):
+        """
         from django.db import connection
         name = slugify(self.row_expression.replace('-', '_'))
         with connection.cursor() as c:
             c.execute(f'DROP MATERIALIZED VIEW IF EXISTS "{name}" CASCADE')
             try:
-                c.execute(f'CREATE MATERIALIZED VIEW "{name}" AS {self.sql}')
+                c.execute(f'CREATE MATERIALIZED VIEW "{name}" AS (SELECT * FROM {self.sql})')
             except Exception as e:
                 logger.error(f'''Unable to continue; SQL was {self.sql}''', exc_info=1) 
                 raise
-    
+        """
+        raise NotImplementedError("materialize should be overridden by a subclass")
+
     def __str__(self):
         return self.row_expression
