@@ -85,6 +85,9 @@ class XmlTable(models.Model):
 
     @property
     def sql(self):
+        """
+        Return the SQL for this XMLTable query
+        """
         return f"""
 XMLTABLE({self.__namespaces}'{self.row_expression}' 
     PASSING {self.document_expression} 
