@@ -1,9 +1,10 @@
-
 from django.db import models
 from django.db import connection
 from django.utils.text import slugify
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 class XmlField(models.TextField):
 
@@ -13,10 +14,10 @@ class XmlField(models.TextField):
         super().__init__(*args, **kwargs)
 
     def db_type(self, connection):
-        return 'xml'
+        return "xml"
 
     def get_internal_type(self):
-        return 'XML'
+        return "XML"
 
 
 class XmlBaseModel(models.Model):
@@ -24,7 +25,6 @@ class XmlBaseModel(models.Model):
 
     class Meta:
         abstract = True
-
 
 
 class XmlColumn(models.Model):
@@ -53,6 +53,7 @@ class XmlColumn(models.Model):
 
     def __str__(self):
         return self.sql
+
 
 class XmlNamespace(models.Model):
     uri = models.CharField(max_length=256)
@@ -97,6 +98,11 @@ XMLTABLE({self.__namespaces}'{self.row_expression}'
         with connection.cursor() as c:
             c.execute(self.sql)
             return c.fetchall()
+
+    def execute_with_columns(self):
+        with connection.cursor() as c:
+            c.execute(self.sql)
+            return [col[0] for col in c.description], c.fetchall()
 
     def materialize(self):
         """
