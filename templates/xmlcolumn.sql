@@ -1,0 +1,1 @@
+{{column.col_name}} {{column.col_type|upper}} {% if column.column_expression %} PATH '{{column.column_expression}}'{% endif %}{% if column.default_expression %} DEFAULT '{{column.default_expression}}'{% endif %}{% if column.not_null %} NOT NULL{% endif %}{% if column.ordinality %} FOR ORDINALITY {% endif %}

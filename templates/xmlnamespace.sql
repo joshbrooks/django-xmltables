@@ -1,0 +1,1 @@
+'{{namespace.uri}}' AS "{{namespace.name}}"

@@ -1,6 +1,7 @@
 from django.db import models
 from django.db import connection
 from django.utils.text import slugify
+from django.template.loader import render_to_string
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,9 +11,6 @@ class XmlField(models.TextField):
 
     description = "An XML type field"
 
-    def __init(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def db_type(self, connection):
         return "xml"
 
@@ -20,14 +18,11 @@ class XmlField(models.TextField):
         return "XML"
 
 
-class XmlBaseModel(models.Model):
-    content = XmlField()
-
-    class Meta:
-        abstract = True
-
-
 class XmlColumn(models.Model):
+    """
+    Generates the XML required to return a "column_expression"
+    from an XMLTABLE expression
+    """
     col_name = models.CharField(max_length=256)
     col_type = models.CharField(max_length=256, default="text")
     col_xsd_type = models.CharField(max_length=256, default="xsd:string")
@@ -37,23 +32,11 @@ class XmlColumn(models.Model):
     for_ordinality = models.BooleanField(default=False)
 
     @property
-    def sql_parts(self):
-        return [
-            self.col_name,
-            self.col_type.upper() if not self.for_ordinality else False,
-            f"PATH '{self.column_expression}'" if self.column_expression else False,
-            f"DEFAULT {self.default_expression}" if self.default_expression else False,
-            "NOT NULL" if self.not_null else False,
-            "FOR ORDINALITY" if self.for_ordinality else False,
-        ]
-
-    @property
     def sql(self):
-        return " ".join([e for e in self.sql_parts if e])
+        return render_to_string('xmlcolumn.sql', dict(column=self))
 
-    def __str__(self):
-        return self.sql
-
+    def __str__(self): 
+        return self.col_name
 
 class XmlNamespace(models.Model):
     uri = models.CharField(max_length=256)
@@ -61,8 +44,10 @@ class XmlNamespace(models.Model):
 
     @property
     def sql(self):
-        return f"'{self.namespace_uri}' AS \"{self.namespace_name}\""
+        return render_to_string('xmlnamespace.sql', dict(namespace=self))
 
+    def __str__(self):
+        return self.name
 
 class XmlTable(models.Model):
     document_expression = models.CharField(max_length=256)
@@ -71,38 +56,25 @@ class XmlTable(models.Model):
     columns = models.ManyToManyField(XmlColumn)
 
     @property
-    def __namespaces(self):
-        if self.namespaces.count():
-            return "XMLNAMESPACES({}),".format(
-                ", ".join(ns.sql for ns in self.namespaces.all())
-            )
-        return ""
-
-    @property
-    def __columns(self):
-        if self.columns:
-            return "{}".format("    ,\n".join(ns.sql for ns in self.columns.all()))
-        return ""
-
-    @property
     def sql(self):
-        """
-        Return the SQL for this XMLTable query
-        """
-        return f"""
-XMLTABLE({self.__namespaces}'{self.row_expression}' 
-    PASSING {self.document_expression} 
-    COLUMNS {self.__columns})"""
+        # hint: may pay to select_related() on namespaces and columns
+        return render_to_string('xmltable.sql', dict(xmltable=self))
 
     def execute(self):
+        """
         with connection.cursor() as c:
             c.execute(self.sql)
             return c.fetchall()
+        """
+        raise NotImplementedError("execute should be overridden by a subclass")
 
     def execute_with_columns(self):
+        """
         with connection.cursor() as c:
             c.execute(self.sql)
             return [col[0] for col in c.description], c.fetchall()
+        """
+        raise NotImplementedError("execute_with_columns should be overridden by a subclass")
 
     def materialize(self):
         """
