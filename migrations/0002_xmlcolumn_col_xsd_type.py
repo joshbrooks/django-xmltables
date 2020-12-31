@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('xmltables', '0001_initial'),
+        ("xmltables", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='xmlcolumn',
-            name='col_xsd_type',
-            field=models.CharField(default='xsd:string', max_length=256),
+            model_name="xmlcolumn",
+            name="col_xsd_type",
+            field=models.CharField(default="xsd:string", max_length=256),
         ),
     ]

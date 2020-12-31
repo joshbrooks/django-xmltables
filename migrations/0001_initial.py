@@ -7,38 +7,67 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='XmlColumn',
+            name="XmlColumn",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('col_name', models.CharField(max_length=256)),
-                ('col_type', models.CharField(default='text', max_length=256)),
-                ('column_expression', models.CharField(blank=True, max_length=256, null=True)),
-                ('default_expression', models.CharField(blank=True, max_length=256, null=True)),
-                ('not_null', models.BooleanField(default=False)),
-                ('for_ordinality', models.BooleanField(default=False)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("col_name", models.CharField(max_length=256)),
+                ("col_type", models.CharField(default="text", max_length=256)),
+                (
+                    "column_expression",
+                    models.CharField(blank=True, max_length=256, null=True),
+                ),
+                (
+                    "default_expression",
+                    models.CharField(blank=True, max_length=256, null=True),
+                ),
+                ("not_null", models.BooleanField(default=False)),
+                ("for_ordinality", models.BooleanField(default=False)),
             ],
         ),
         migrations.CreateModel(
-            name='XmlNamespace',
+            name="XmlNamespace",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('uri', models.CharField(max_length=256)),
-                ('name', models.CharField(max_length=256)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("uri", models.CharField(max_length=256)),
+                ("name", models.CharField(max_length=256)),
             ],
         ),
         migrations.CreateModel(
-            name='XmlTable',
+            name="XmlTable",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('document_expression', models.CharField(max_length=256)),
-                ('row_expression', models.CharField(max_length=256)),
-                ('columns', models.ManyToManyField(to='xmltables.XmlColumn')),
-                ('namespaces', models.ManyToManyField(to='xmltables.XmlNamespace')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("document_expression", models.CharField(max_length=256)),
+                ("row_expression", models.CharField(max_length=256)),
+                ("columns", models.ManyToManyField(to="xmltables.XmlColumn")),
+                ("namespaces", models.ManyToManyField(to="xmltables.XmlNamespace")),
             ],
         ),
     ]
